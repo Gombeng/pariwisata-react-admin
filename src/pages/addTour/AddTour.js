@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useState, CSSProperties } from 'react';
+import React, { useState, CSSProperties, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HashLoader from 'react-spinners/HashLoader';
 import styled from 'styled-components';
@@ -14,9 +14,24 @@ const AddTour = () => {
 	const [desc, setDesc] = useState('');
 	const [address, setAddress] = useState('');
 	const [image, setImage] = useState('');
+	const [preview, setPreview] = useState(null);
 	const [error, setError] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const navigate = useNavigate();
+
+	// create a preview as a side effect, whenever selected file is changed
+	useEffect(() => {
+		if (!image) {
+			setPreview(undefined);
+			return;
+		}
+
+		const objectUrl = URL.createObjectURL(image);
+		setPreview(objectUrl);
+
+		// free memory when ever this component is unmounted
+		return () => URL.revokeObjectURL(objectUrl);
+	}, [image]);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -60,22 +75,43 @@ const AddTour = () => {
 		}
 	};
 
+	const onSelectFile = (e) => {
+		if (!e.target.files || e.target.files.length === 0) {
+			setImage(undefined);
+			return;
+		}
+
+		// I've kept this example simple by using the first image instead of multiple
+		setImage(e.target.files[0]);
+	};
 	return (
-		<Container className="App" center style={{margin: '1rem auto'}}>
+		<Container className="App" center style={{ margin: '1rem auto' }}>
 			<div>
 				<HashLoader size={120} cssOverride={override} loading={loading} />
 				{error && <p style={{ color: 'red', fontWeight: 'bold' }}>{error}</p>}
 
 				<Form onSubmit={handleSubmit} encType="multipart/form-data">
-					<h4 className="mb-half">Gambar tempat wisata</h4>
-					<input
-						className="mb-1"
-						type="file"
-						accept=".png, .jpg, .jpeg"
-						name="image"
-						onChange={(e) => setImage(e.target.files[0])}
-						required
-					/>
+					<h4 className="mb-1">Gambar tempat wisata</h4>
+
+					<div className="flex">
+						{image && (
+							<img
+								className="mr-1"
+								style={{ width: '200px' }}
+								src={preview}
+								alt="preview"
+							/>
+						)}
+
+						<input
+							className="border-none p-0"
+							type="file"
+							accept=".png, .jpg, .jpeg"
+							name="image"
+							onChange={onSelectFile}
+							required
+						/>
+					</div>
 
 					<h4 className="mb-half">Nama tempat wisata</h4>
 					<input
@@ -88,7 +124,7 @@ const AddTour = () => {
 								e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1)
 							);
 						}}
-						placeholder='Nama...'
+						placeholder="Nama..."
 						required
 					/>
 
@@ -101,19 +137,19 @@ const AddTour = () => {
 							// additional function is to make first letter capital. e.g: foo -> Foo
 							setAddress(e.target.value);
 						}}
-						placeholder='Link Google maps...'
+						placeholder="Link Google maps..."
 						required
 					/>
 
 					<h4 className="mb-half">Deskripsi tempat wisata</h4>
 					<textarea
 						className="mb-1"
-						rows='5'
+						rows="5"
 						value={desc}
 						onChange={(e) => {
 							setDesc(e.target.value);
 						}}
-						placeholder='Deskripsi...'
+						placeholder="Deskripsi..."
 						required
 					></textarea>
 
@@ -152,7 +188,16 @@ const Form = styled.form`
 		margin-top: 1rem;
 	}
 
+	.flex {
+		display: flex;
+		align-items: center;
+	}
+
 	.text-capitalize {
 		text-transform: capitalize;
+	}
+
+	.p-0 {
+		padding: 0;
 	}
 `;
